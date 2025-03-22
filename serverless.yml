@@ -1,0 +1,53 @@
+service: tasks-api
+
+frameworkVersion: '4'
+useDotenv: true
+
+provider:
+  name: aws
+  runtime: go1.x
+  region: 'eu-west-1'
+  stage: ${opt:stage, 'development'}
+  logRetentionInDays: 90
+  environment:
+    APP_ENVIRONMENT: ${self:provider.stage}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:DescribeTable
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - "Fn::GetAtt": [ TasksAPITable, Arn ]
+            - "Fn::Join": ['/', ["Fn::GetAtt": [ TasksAPITable, Arn ], 'index', '*']]
+
+functions:
+  API:
+    handler: bin/api
+    timeout: 10
+    memorySize: 512
+    events:
+      - http:
+          path: /{proxy+}
+          method: any
+          cors:
+            origin: ${env:ALLOWED_ORIGINS}
+            maxAge: 60
+
+package:
+  patterns:
+    - '!**/*'
+    - bin/**
+
+custom:
+  stage: ${opt:stage, self:provider.stage}
+  tableName: ${self:custom.stage}-tasks-api
+
+resources:
+  - ${file(resources/dynamodb.yml)}
