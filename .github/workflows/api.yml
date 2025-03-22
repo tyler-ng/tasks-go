@@ -2,7 +2,7 @@ name: Go API Test and Deploy
 on:
   push:
     paths:
-      - "tasks-go/**"
+      - "**"
       - ".github/workflows/api.yml"
 
 env:
@@ -27,14 +27,14 @@ jobs:
           go-version: ${{ matrix.go-version }}
           cache: true
       - name: Install dependencies
-        run: cd tasks-go && go mod download
+        run: go mod download
       - name: Run tests
-        run: cd tasks-go && go test -v -coverprofile=coverage.out ./...
+        run: go test -v -coverprofile=coverage.out ./...
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./tasks-go/coverage.out
+          file: ./coverage.out
 
   code-quality:
     strategy:
@@ -52,7 +52,7 @@ jobs:
       - name: Install golangci-lint
         run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.55.2
       - name: Run golangci-lint
-        run: cd tasks-go && golangci-lint run ./...
+        run: golangci-lint run ./...
 
   deploy-development:
     needs: [test, code-quality]
@@ -77,8 +77,8 @@ jobs:
       - name: Install Serverless Framework
         run: npm install -g serverless
       - name: Install NPM dependencies
-        run: cd tasks-go && npm install
+        run: npm install
       - name: Build Go binary
-        run: cd tasks-go && make build
+        run: make build
       - name: Deploy
-        run: cd tasks-go && sls deploy --stage development --verbose
+        run: sls deploy --stage development --verbose
